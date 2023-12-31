@@ -1,0 +1,85 @@
+version: '3'
+
+services:
+  haproxy:
+    image: haproxy:2.9.1-alpine
+    depends_on:
+      - rabbitmq-1
+      - rabbitmq-2
+      - rabbitmq-3
+    ports:
+      # - "15675:15672"  # HAProxy management port
+      - "15672:15672"  # HAProxy management port
+      - "5672:5672"    # HAProxy AMQP port
+      - "1936:1936"    # Report
+    volumes:
+      - "./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
+  
+  consul:
+    image: consul:1.4.0
+    # image: consul:1.15
+    command: [
+      "agent", "-server",
+      "-bootstrap-expect=1",  # Adjust based on the number of nodes expected to join the cluster.
+      "-data-dir=/consul/data",
+      "-config-dir=/consul/config",
+      "-client=0.0.0.0",
+      "-ui"
+    ]
+    ports:
+      - "8500:8500"  # Consul web UI
+    volumes:
+      - "./tmp/consul/data:/consul/data"
+      - "./tmp/consul/config:/consul/config"
+
+  rabbitmq-1:
+    image: rabbitmq:3.12-management-alpine
+    hostname: rabbitmq-1
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=P6euPuJ+9iKMq+WqGJEzBA==
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    # ports:
+    #   - "15672:15672"
+    #   - "5672:5672"
+    volumes:
+      - "./tmp/rabbitmq-1/mnesia:/var/lib/rabbitmq/mnesia"
+      - "./tmp/rabbitmq-1/log:/var/log/rabbitmq"
+      - "./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
+      - "./config/enabled_plugins:/etc/rabbitmq/enabled_plugins"
+
+  rabbitmq-2:
+    image: rabbitmq:3.12-management-alpine
+    hostname: rabbitmq-2
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=P6euPuJ+9iKMq+WqGJEzBA==
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    # ports:
+    #   - "15673:15672"
+    #   - "5673:5672"
+    volumes:
+      - "./tmp/rabbitmq-2/mnesia:/var/lib/rabbitmq/mnesia"
+      - "./tmp/rabbitmq-2/log:/var/log/rabbitmq"
+      - "./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
+      - "./config/enabled_plugins:/etc/rabbitmq/enabled_plugins"
+    depends_on:
+      - rabbitmq-1
+
+  rabbitmq-3:
+    image: rabbitmq:3.12-management-alpine
+    hostname: rabbitmq-3
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=P6euPuJ+9iKMq+WqGJEzBA==
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    # ports:
+    #   - "15674:15672"
+    #   - "5674:5672"
+    volumes:
+      - "./tmp/rabbitmq-3/mnesia:/var/lib/rabbitmq/mnesia"
+      - "./tmp/rabbitmq-3/log:/var/log/rabbitmq"
+      - "./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
+      - "./config/enabled_plugins:/etc/rabbitmq/enabled_plugins"
+    depends_on:
+      - rabbitmq-1
